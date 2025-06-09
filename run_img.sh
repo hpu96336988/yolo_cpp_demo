@@ -1,0 +1,1 @@
+build/yolov12_demo models/yolov8n.onnx images/000000000285.jpg data/coco.names| tee output.txt

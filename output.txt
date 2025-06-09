@@ -1,0 +1,37 @@
+Loaded 80 class names from data/coco.names
+ONNX Runtime 推論將嘗試使用 GPU (CUDA) 加速。
+模型輸入節點: images
+模型輸出節點: output0
+模型期望輸入尺寸 (H, W): 640, 640
+YOLOv12Inference 已用模型初始化: models/yolov8n.onnx
+Processing image: images/000000000285.jpg
+LetterBox: original (586,640), target (640,640), scaled (586,640), padding (54,0), scale: 1
+
+--- LetterBoxInfo and Original Image Dimensions ---
+
+LetterBoxInfo.scale: 1
+LetterBoxInfo.pad_x: 27
+LetterBoxInfo.pad_y: 0
+Original Image Width: 586
+Original Image Height: 640
+---------------------------------------------------
+
+Blob dimensions (N, C, H, W): 1, 3, 640, 640
+onnx輸出格式: [1, 84, 8400]
+
+--- NMS Detections (Before Scaling) ---
+
+Class: bear, Score: 0.964079, BBox: [x=48, y=84, w=560, h=554]
+
+-----------------------------------------
+
+
+--- Final Detections (After Post-processing and Scaling) ---
+
+Class: bear, Score: 0.964079, BBox: [x=21, y=84, w=560, h=554]
+
+--------------------------------------------------------
+
+Inference and Post-processing took: 58.393 ms
+
+Detection result saved to output/output_detection_result.jpg

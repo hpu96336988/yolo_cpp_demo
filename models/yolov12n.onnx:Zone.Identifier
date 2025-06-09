@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://github.com/sunsmarterjie/yolov12/releases
+HostUrl=https://objects.githubusercontent.com/github-production-release-asset-2e65be/928546208/ca1eaff4-6143-4f54-825f-29f265583491?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=releaseassetproduction%2F20250528%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250528T091613Z&X-Amz-Expires=300&X-Amz-Signature=ea5c0eac3f68bce8e03c735c3959b68d1d73527c792d46aec8daddb1919612bc&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3Dyolov12n.onnx&response-content-type=application%2Foctet-stream
