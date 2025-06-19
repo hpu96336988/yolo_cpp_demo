@@ -174,65 +174,36 @@ Successfully tagged yolo-cpp-app:latest
 
 建置好映像檔後，您就可以從這個映像檔中啟動一個或多個「容器」。容器是映像檔的運行實例。
 
-**根據您是否使用 NVIDIA GPU，運行命令會有所不同：**
-
-**情況 A：如果您有 NVIDIA GPU 並已安裝 NVIDIA Container Toolkit (推薦，以便利用 GPU 加速)：**
+**建議用法：預設強制使用 CPU，最穩定不會崩潰**
 
 ```bash
-docker run --gpus all -it --rm \\
-    -v "$(pwd)/images:/app/images" \\
-    -v "$(pwd)/models:/app/models" \\
-    -v "$(pwd)/data:/app/data" \\
-    -v "$(pwd)/output:/app/output" \\
-    yolo-cpp-app
+# 推薦所有情境都加上 -e YOLO_FORCE_CPU=1
+# 這樣即使沒有 GPU 或 Docker 沒有正確掛載 GPU，也不會崩潰
+
+docker run -it --rm -e YOLO_FORCE_CPU=1 \
+    -v "$(pwd)/images:/app/images" \
+    -v "$(pwd)/models:/app/models" \
+    -v "$(pwd)/data:/app/data" \
+    -v "$(pwd)/output:/app/output" \
+    yolov12-demo
 ```
 
-**情況 B：如果您沒有 NVIDIA GPU 或不想使用 GPU (使用 CPU 運行)：**
+- 這樣做會強制只用 CPU，最保險。
+- **只有在你確定主機有 GPU 且 Docker 有正確掛載 GPU 時，才可以移除 `-e YOLO_FORCE_CPU=1` 並加上 `--gpus all` 來用 GPU。**
 
 ```bash
-docker run -it --rm \\
-    -v "$(pwd)/images:/app/images" \\
-    -v "$(pwd)/models:/app/models" \\
-    -v "$(pwd)/data:/app/data" \\
-    -v "$(pwd)/output:/app/output" \\
-    yolov12-demo 
+# 僅在有 GPU 且想用 GPU 時才這樣執行
+
+docker run -it --rm --gpus all \
+    -v "$(pwd)/images:/app/images" \
+    -v "$(pwd)/models:/app/models" \
+    -v "$(pwd)/data:/app/data" \
+    -v "$(pwd)/output:/app/output" \
+    yolov12-demo
 ```
 
-**命令解釋（非常重要，請仔細閱讀）：**
+- 沒有 GPU 或 Docker 沒有正確掛載 GPU 時，請務必加上 `-e YOLO_FORCE_CPU=1`，否則程式可能會崩潰。
 
-*   `docker run`: 這是 Docker 命令，用於從映像檔啟動並運行一個新的容器。
-*   `--gpus all` (僅限 GPU 情況):
-    *   這個選項是 `nvidia-container-toolkit` 提供的，它會告訴 Docker 容器，讓它可以訪問您主機上**所有可用**的 NVIDIA GPU。
-    *   如果您只想指定特定的 GPU，例如 ID 為 `0` 的 GPU，可以使用 `--gpus device=0`。
-*   `-it`: 這兩個是常用的選項組合：
-    *   `-i` (`--interactive`): 保持標準輸入 (stdin) 開啟，即使沒有連接到容器。這使得您可以在容器內進行互動。
-    *   `-t` (`--tty`): 分配一個偽終端機 (pseudo-TTY)。這使得您可以在終端機中看到容器的輸出，並能像在正常的終端機中一樣與容器互動。
-*   `--rm`: 這個選項表示當容器停止（例如，您的 YOLO 程式運行結束）時，Docker 會自動刪除這個容器。這有助於保持您的系統清潔，避免留下大量的停止容器。
-*   `-v <主機路徑>:<容器路徑>` (`--volume`): 這是**掛載卷 (Volume Mount)** 的關鍵選項。它允許您將主機（您的電腦）上的某個資料夾，映射到容器內部的某個資料夾。
-    *   `"$(pwd)/images"`: 這部分代表您**主機**上 `images` 資料夾的絕對路徑。
-        *   `$(pwd)` 是一個 Bash/Zsh/PowerShell 的語法，它會自動解析為您當前終端機所在的目錄的絕對路徑。所以，如果您在專案根目錄運行這個命令，它就會是您專案目錄下的 `images` 資料夾。
-        *   **如果您在 Windows 的命令提示字元 (CMD) 中，`$(pwd)` 無法直接使用。** 您需要手動將其替換為實際的絕對路徑，例如：
-            `C:\\Users\\YourUser\\YourProject\\images`
-            請記得將反斜線 `\` 替換為正斜線 `/`，或者使用雙反斜線 `\\`，例如 `C:/Users/YourUser/YourProject/images`。
-    *   `/app/images`: 這部分代表容器內部的路徑。由於您在 `Dockerfile` 中將專案複製到了 `/app`，所以容器內的 `images` 資料夾應該是 `/app/images`。
-    *   **掛載卷的作用：**
-        *   **輸入數據：** 透過將主機上的 `images` 資料夾掛載到容器的 `/app/images`，您的 YOLO 程式在容器內部運行時，可以讀取主機 `images` 資料夾中的圖片。您只需要將新的圖片放入主機上的 `images` 資料夾，容器就可以處理它，而不需要重新建置映像檔。
-        *   **輸出結果：** 透過將主機上的 `output` 資料夾掛載到容器的 `/app/output`，您的 YOLO 程式在容器內部生成的所有結果檔案（例如帶有檢測框的圖片）都會直接保存到您主機上的 `output` 資料夾中。這樣您就可以方便地在主機上查看結果。
-        *   同樣的原理適用於 `models` 和 `data` 資料夾，確保您的程式可以訪問模型權重、配置檔案和類別名稱檔案。
-*   `yolov12-demo`: 這是您在步驟 2 中成功建置的 Docker 映像檔的名稱。
-
-執行上述 `docker run` 命令後，Docker 容器將會啟動，並自動執行您在 `Dockerfile` 中 `CMD` 指令定義的預設命令（也就是您的 `yolo_cpp_demo` 程式）。您應該會在終端機中看到程式的輸出，例如處理進度、日誌信息等。
-
-**替換圖片指令**
-```
-docker run --gpus all --rm yolov12-demo /app/build/yolov12_demo models/yolov8n.onnx images/000000021079.jpg data/coco.names  
-```
-
-**docker運行但輸出結果到本機putput中**
-
-```
-docker run --gpus all --rm -v $(pwd)/output:/app/output yolov12-demo /app/build/yolov12_demo models/yolov8n.onnx images/000000000001.jpg data/coco.names
-```
 #### 步驟 4：驗證結果
 
 當您的 Docker 容器運行結束後（通常當 `yolo_cpp_demo` 程式完成其任務並退出時，容器也會停止），請執行以下操作來驗證結果：
@@ -295,4 +266,34 @@ docker run --gpus all --rm -v $(pwd)/output:/app/output yolov12-demo /app/build/
         docker rmi yolo-cpp-app
         ```
         *   `docker rmi`: 這是用於刪除 Docker 映像檔的命令。
-        *   請注意，如果您有基於此映像檔的容器仍在運行，Docker 會阻止您刪除映像檔。您需要先停止並刪除所有相關容器。 
+        *   請注意，如果您有基於此映像檔的容器仍在運行，Docker 會阻止您刪除映像檔。您需要先停止並刪除所有相關容器。
+
+#### 補充：原始碼變更後如何重新編譯專案
+
+每當你修改了 C++ 原始碼（例如 `src/main.cpp` 等檔案），都需要重新編譯專案，才能讓變更生效。
+
+**推薦步驟（建議用 build.sh 腳本）：**
+
+```bash
+./build.sh
+```
+
+這個腳本會自動：
+- 刪除舊的 build 目錄（確保乾淨編譯）
+- 建立新的 build 目錄
+- 執行 CMake 配置
+- 使用所有 CPU 核心進行 make 編譯
+
+**手動步驟（如果你想自己下指令）：**
+
+```bash
+rm -rf build
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+```
+
+**注意：**
+- 每次 C++ 檔案有修改都要重新編譯，否則執行檔不會更新。
+- 如果你是在 Docker 容器內編譯，也請在容器內執行上述指令。 

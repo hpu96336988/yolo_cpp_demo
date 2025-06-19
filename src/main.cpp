@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <opencv2/opencv.hpp>
+#include <cstdlib> // for std::getenv
 
 // 引入所有模塊的頭文件
 #include "preprocess/preprocess.h"
@@ -32,17 +33,40 @@ int main(int argc, char* argv[]) {
     }
 
     // ========================================================================
-    // 新增部分：初始化 Ort::SessionOptions
+    // 新增部分：初始化 Ort::SessionOptions，並自動偵測 GPU 是否可用
     // ========================================================================
     Ort::SessionOptions session_options;
     session_options.SetGraphOptimizationLevel(ORT_ENABLE_BASIC); // 設置圖優化級別
-    
-    // 嘗試啟用 CUDA 執行提供者 (如果你的 ONNX Runtime 支持 GPU 並且你有 CUDA 環境)
-    try {
-        OrtSessionOptionsAppendExecutionProvider_CUDA(session_options, 0); // 0 是 GPU device ID
-        std::cout << "ONNX Runtime 推論將嘗試使用 GPU (CUDA) 加速。" << std::endl;
-    } catch (const Ort::Exception& e) {
-        std::cerr << "警告: 無法啟用 CUDA 執行提供者，將回退到 CPU 推論。錯誤: " << e.what() << std::endl;
+
+    // 嘗試自動偵測 CUDA driver 是否可用
+    bool use_cuda = false;
+    // 1. 檢查環境變數 NVIDIA_VISIBLE_DEVICES（在 docker/nvidia 環境常見）
+    const char* nvidia_env = std::getenv("NVIDIA_VISIBLE_DEVICES");
+    if (nvidia_env && std::string(nvidia_env) != "" && std::string(nvidia_env) != "none") {
+        use_cuda = true;
+    }
+    // 2. 檢查 /dev/nvidia0 是否存在（在本機/WSL2 也可用）
+    if (!use_cuda) {
+        if (FILE* f = std::fopen("/dev/nvidia0", "r")) {
+            use_cuda = true;
+            std::fclose(f);
+        }
+    }
+    // 3. 也可讓用戶用環境變數強制指定（可選）
+    const char* force_cpu = std::getenv("YOLO_FORCE_CPU");
+    if (force_cpu && std::string(force_cpu) == "1") {
+        use_cuda = false;
+    }
+
+    if (use_cuda) {
+        try {
+            OrtSessionOptionsAppendExecutionProvider_CUDA(session_options, 0); // 0 是 GPU device ID
+            std::cout << "ONNX Runtime 推論將嘗試使用 GPU (CUDA) 加速。" << std::endl;
+        } catch (...) {
+            std::cerr << "警告: CUDA provider 初始化失敗，將回退到 CPU。" << std::endl;
+        }
+    } else {
+        std::cout << "ONNX Runtime 將使用 CPU 執行。" << std::endl;
     }
     // ========================================================================
 
