@@ -296,4 +296,70 @@ make -j$(nproc)
 
 **注意：**
 - 每次 C++ 檔案有修改都要重新編譯，否則執行檔不會更新。
-- 如果你是在 Docker 容器內編譯，也請在容器內執行上述指令。 
+- 如果你是在 Docker 容器內編譯，也請在容器內執行上述指令。
+
+#### 補充：如何將映像檔推送到 Docker Hub 並分享給他人
+
+如果你想把自己 build 好的 Docker 映像檔上傳到 Docker Hub，讓其他人可以直接下載使用，可以參考以下步驟：
+
+##### 1. 註冊 Docker Hub 帳號
+- 前往 https://hub.docker.com/ 註冊一個帳號。
+
+##### 2. 登入 Docker Hub
+```bash
+docker login
+```
+- 輸入你的 Docker Hub 帳號與密碼。
+
+##### 3. 重新標記（tag）你的映像檔
+- Docker Hub 上的映像名稱格式為：`帳號/映像名稱:標籤`
+- 例如你的帳號是 `myuser`，想上傳的映像叫 `yolov12-demo`，可以這樣標記：
+```bash
+docker tag yolov12-demo myuser/yolov12-demo:latest
+```
+
+##### 4. 推送映像檔到 Docker Hub
+```bash
+docker push myuser/yolov12-demo:latest
+```
+- 上傳過程可能需要一點時間。
+
+##### 5. 其他人如何下載與運行
+- 只要有 Docker Hub 帳號，任何人都可以用下列指令下載你的映像檔：
+```bash
+docker pull myuser/yolov12-demo:latest
+```
+- 然後用你教學中的 run 指令運行即可。
+
+##### 6. 常見問題
+- 如果 push/pull 過程遇到權限問題，請確認已經 `docker login`。
+- 建議不要把敏感資料（如密碼、金鑰）寫進映像檔。
+
+#### 補充：如何在 docker run 時自訂模型、圖片、class 檔案等參數
+
+有時你會想要臨時更換推論的圖片、模型或 class 檔案，可以在 docker run 指令後面加上對應的參數。
+
+**範例：自訂模型、圖片、class 檔案（CPU 版本）**
+
+```bash
+docker run -it --rm -e YOLO_FORCE_CPU=1 \
+  -v "$(pwd)/images:/app/images" \
+  -v "$(pwd)/models:/app/models" \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/output:/app/output" \
+  yolov12-demo /app/build/yolov12_demo models/yolov8n.onnx images/000000021079.jpg data/coco.names
+```
+
+**範例：自訂模型、圖片、class 檔案（GPU 版本）**
+
+```bash
+docker run -it --rm --gpus all \
+  -v "$(pwd)/images:/app/images" \
+  -v "$(pwd)/models:/app/models" \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/output:/app/output" \
+  yolov12-demo /app/build/yolov12_demo models/yolov8n.onnx images/000000021079.jpg data/coco.names
+```
+
+- 你可以把 `models/yolov8n.onnx`、`images/000000021079.jpg`、`data/coco.names` 換成你要推論的檔案路徑。
+- 這樣可以不用重建映像檔，也不用改 Dockerfile，直接用不同參數做不同推論。 
